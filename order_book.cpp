@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <unordered_map>
 
 class order_book {
   public:
@@ -42,28 +44,37 @@ class order_book {
     };
 
     // to add an order to the order book
-    void add_order(const order& order) { orders.push_back(order); }
+    void add_order(const order& order) {  orders.emplace(order.get_id(), order); }
 
     // to cancel an order in the order book
+    // void cancel_order(int order_id) {
+    //     // remove_if moves all the elements for which it returns true to the end
+    //     // of the vector and returns an iterator to the new end of the vector
+    //     auto it = std::remove_if(orders.begin(), orders.end(),
+    //                              [order_id](const order &order) {
+    //                                  return order.get_id() == order_id;
+    //                              });
+    //     if (it != orders.end()) {
+    //         std::cout << "Canceled Order ID : " << order_id << std::endl;
+    //         orders.erase(it, orders.end());
+    //     }
+    // }
+
     void cancel_order(int order_id) {
-        // remove_if moves all the elements for which it returns true to the end
-        // of the vector and returns an iterator to the new end of the vector
-        auto it = std::remove_if(orders.begin(), orders.end(),
-                                 [order_id](const order &order) {
-                                     return order.get_id() == order_id;
-                                 });
+        auto it = orders.find(order_id);
         if (it != orders.end()) {
             std::cout << "Canceled Order ID : " << order_id << std::endl;
-            orders.erase(it, orders.end());
+            orders.erase(it);
         }
     }
+
 
     // to match orders in the order book
     void match_orders() {
         // first handle the market orders
         for (auto it = orders.begin(); it != orders.end();) {
-            if (it->get_type() == order_type::market) {
-                auto match_it = find_match(it, it->get_quantity());
+            if (it->second.get_type() == order_type::market) {
+                auto match_it = find_match(it, it->second.get_quantity());
                 if (match_it != orders.end()) {
                     execute_order(it, match_it);
                     it = orders.erase(it);
@@ -77,8 +88,8 @@ class order_book {
 
         // Second, handle good till canceled orders
         for (auto it = orders.begin(); it != orders.end();) {
-            if (it->get_type() == order_type::good_till_canceled) {
-                auto match_it = find_match(it, it->get_quantity());
+            if (it->second.get_type() == order_type::good_till_canceled) {
+                auto match_it = find_match(it, it->second.get_quantity());
                 if (match_it != orders.end()) {
                     execute_order(it, match_it);
                     it = orders.erase(it);
@@ -93,8 +104,8 @@ class order_book {
         // Finally, handle Limit orders that were not matched by Market or GTC
         // orders
         for (auto it = orders.begin(); it != orders.end();) {
-            if (it->get_type() == order_type::limit) {
-                auto match_it = find_match(it, it->get_quantity());
+            if (it->second.get_type() == order_type::limit) {
+                auto match_it = find_match(it, it->second.get_quantity());
                 if (match_it != orders.end()) {
                     execute_order(it, match_it);
                     it = orders.erase(it);
@@ -109,24 +120,26 @@ class order_book {
 
     // to print all orders in the order book
     void print_orders() {
-        for (auto &order : orders) {
-            print_order(order);
+        for (auto [key,value] : orders) {
+            print_order(value);
         }
     }
 
   private:
-    std::vector<order> orders;
+    //std::vector<order> orders;
+    std::unordered_map<int, order> orders;
 
     // helper function to find a match for the given order
-    std::vector<order>::iterator
+    //std::vector<order>::iterator
+    std::unordered_map<int,order>::iterator
     
-    find_match(std::vector<order>::iterator& order_it, int quantity, bool full_match = false) {
+    find_match(std::unordered_map<int,order>::iterator& order_it, int quantity, bool full_match = false) {
         
         for (auto it = orders.begin(); it != orders.end(); ++it) {
-            if (it->get_side() != order_it->get_side() &&
-                ((order_it->get_side() == side::buy && it->get_price() <= order_it->get_price()) ||
-                 (order_it->get_side() == side::sell && it->get_price() >= order_it->get_price())) &&
-                 (!full_match || it->get_quantity() >= quantity)) {
+            if (it->second.get_side() != order_it->second.get_side() &&
+                ((order_it->second.get_side() == side::buy && it->second.get_price() <= order_it->second.get_price()) ||
+                 (order_it->second.get_side() == side::sell && it->second.get_price() >= order_it->second.get_price())) &&
+                 (!full_match || it->second.get_quantity() >= quantity)) {
                 return it;
             }
         }
@@ -134,11 +147,11 @@ class order_book {
     }
 
     // helper function to execute an order
-    void execute_order(std::vector<order>::iterator& order_it, std::vector<order>::iterator& match_it){
-        double fill_price = match_it->get_price();
-        std::cout << "Matched Order ID: " << order_it->get_id() << " with Order ID: " << match_it->get_id() << " at Price: " << std::fixed << std::setprecision(2) << fill_price << " quantity: " << order_it->get_quantity() << std::endl;
-        match_it->set_quantity(match_it->get_quantity() - order_it->get_quantity());
-        if(match_it->get_quantity()==0){
+    void execute_order(std::unordered_map<int,order>::iterator& order_it, std::unordered_map<int,order>::iterator& match_it){
+        double fill_price = match_it->second.get_price();
+        std::cout << "Matched Order ID: " << order_it->second.get_id() << " with Order ID: " << match_it->second.get_id() << " at Price: " << std::fixed << std::setprecision(2) << fill_price << " quantity: " << order_it->second.get_quantity() << std::endl;
+        match_it->second.set_quantity(match_it->second.get_quantity() - order_it->second.get_quantity());
+        if(match_it->second.get_quantity()==0){
             orders.erase(match_it);
         }
     }
