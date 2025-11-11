@@ -40,7 +40,7 @@ bool check_circle(int x, int y, int r) {
 // }
 
 // #2 Thread Implementation
-// passing with reference creates precision error because of thread updation
+// passing with reference creates precision error because of thread updation (Conceptually flawed (shared atomic floats)(marked by =>))
 // (avg π = 3.44011, avg % error = 9.50206%, avg time = 13,942,939 ns ≈ 13.94 milliseconds)
 
 // void simulate(std::atomic<long double>&  total_points, std::atomic<long
@@ -49,12 +49,12 @@ bool check_circle(int x, int y, int r) {
 //     std::mt19937 gen(rd_seed());
 //     std::uniform_real_distribution<> dis(1,960);
 //     for(int i = 1; i<20000;++i){
-//         total_points = total_points + 1;
+//         total_points = total_points + 1; // => is not atomic. it does load/add/store, not a single atomic op.
 //         // x - r  to center the circle
 //         long double x = dis(gen) - r;
 //         long double y = dis(gen) - r;
 //         if(check_circle(x,y,r)){
-//             circle_points = circle_points + 1;
+//             circle_points = circle_points + 1;   // => is not atomic. it does load/add/store, not a single atomic op.
 //         }
 //         //long double pi = 4.0 * (circle_points/total_points);
 //         //long double error =abs(100 - ((pi/3.14159265359) * 100.00)) ;
