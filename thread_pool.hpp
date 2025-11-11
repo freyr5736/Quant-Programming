@@ -76,7 +76,7 @@ class thread_pool {
         cv_task.notify_one();
         return res;
     }
-
+    // often return too early before tasks are finished.
     // void pool_wait() {
     //     std::unique_lock<std::mutex> lock(q_mutex);
     //     cv_task.wait(lock, [this] { return tasks.empty(); });
